@@ -1,0 +1,44 @@
+{
+  "name": "@trivikr-test/undici-http-handler",
+  "version": "0.1.0",
+  "description": "Smithy-compatible HTTP handler using undici instead of Node.js native http",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/es/index.js",
+  "types": "./dist/types/index.d.ts",
+  "scripts": {
+    "build": "concurrently 'yarn:build:cjs' 'yarn:build:es' 'yarn:build:types'",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:es": "tsc -p tsconfig.es.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "smithy",
+    "undici",
+    "http",
+    "handler",
+    "aws-sdk"
+  ],
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@smithy/protocol-http": "^5.0.0",
+    "@smithy/querystring-builder": "^4.0.0",
+    "@smithy/types": "^4.0.0",
+    "tslib": "^2.6.2",
+    "undici": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "concurrently": "^9.0.0",
+    "typescript": "~5.7.0",
+    "vitest": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "dist/**"
+  ],
+  "packageManager": "yarn@4.14.1"
+}
