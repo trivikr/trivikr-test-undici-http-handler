@@ -221,6 +221,20 @@ describe("UndiciHttpHandler", () => {
       ).rejects.toThrow("Request aborted");
     });
 
+    it("throws error with name AbortError if signal is already aborted", async () => {
+      handler = new UndiciHttpHandler();
+      const controller = new AbortController();
+      controller.abort();
+      try {
+        await handler.handle(createMockRequest(), {
+          abortSignal: controller.signal as any,
+        });
+        expect.unreachable("should have thrown");
+      } catch (err: any) {
+        expect(err.name).toBe("AbortError");
+      }
+    });
+
     it("throws AbortError when signal is aborted during request", async () => {
       handler = new UndiciHttpHandler();
       const controller = new AbortController();
@@ -230,6 +244,26 @@ describe("UndiciHttpHandler", () => {
           abortSignal: controller.signal as any,
         }),
       ).rejects.toThrow();
+    });
+
+    it("sets name to AbortError on UND_ERR_ABORTED and preserves original error", async () => {
+      const abortError = Object.assign(new Error("aborted"), {
+        code: "UND_ERR_ABORTED",
+      });
+      const mockDispatcher = {
+        request: vi.fn().mockRejectedValue(abortError),
+        destroy: vi.fn(),
+      } as unknown as Dispatcher;
+
+      handler = new UndiciHttpHandler({ dispatcher: mockDispatcher });
+      try {
+        await handler.handle(createMockRequest());
+        expect.unreachable("should have thrown");
+      } catch (err: any) {
+        expect(err.name).toBe("AbortError");
+        expect(err.code).toBe("UND_ERR_ABORTED");
+        expect(err).toBe(abortError);
+      }
     });
   });
 
@@ -248,6 +282,107 @@ describe("UndiciHttpHandler", () => {
           requestTimeout: 50,
         }),
       ).rejects.toThrow();
+    });
+
+    it("sets name to TimeoutError on UND_ERR_HEADERS_TIMEOUT and preserves original error", async () => {
+      const timeoutError = Object.assign(new Error("headers timed out"), {
+        code: "UND_ERR_HEADERS_TIMEOUT",
+      });
+      const mockDispatcher = {
+        request: vi.fn().mockRejectedValue(timeoutError),
+        destroy: vi.fn(),
+      } as unknown as Dispatcher;
+
+      handler = new UndiciHttpHandler({ dispatcher: mockDispatcher });
+      try {
+        await handler.handle(createMockRequest());
+        expect.unreachable("should have thrown");
+      } catch (err: any) {
+        expect(err.name).toBe("TimeoutError");
+        expect(err.code).toBe("UND_ERR_HEADERS_TIMEOUT");
+        expect(err).toBe(timeoutError);
+      }
+    });
+
+    it("sets name to TimeoutError on UND_ERR_BODY_TIMEOUT and preserves original error", async () => {
+      const timeoutError = Object.assign(new Error("body timed out"), {
+        code: "UND_ERR_BODY_TIMEOUT",
+      });
+      const mockDispatcher = {
+        request: vi.fn().mockRejectedValue(timeoutError),
+        destroy: vi.fn(),
+      } as unknown as Dispatcher;
+
+      handler = new UndiciHttpHandler({ dispatcher: mockDispatcher });
+      try {
+        await handler.handle(createMockRequest());
+        expect.unreachable("should have thrown");
+      } catch (err: any) {
+        expect(err.name).toBe("TimeoutError");
+        expect(err.code).toBe("UND_ERR_BODY_TIMEOUT");
+        expect(err).toBe(timeoutError);
+      }
+    });
+
+    it("sets name to TimeoutError on UND_ERR_CONNECT_TIMEOUT and preserves original error", async () => {
+      const timeoutError = Object.assign(new Error("connect timed out"), {
+        code: "UND_ERR_CONNECT_TIMEOUT",
+      });
+      const mockDispatcher = {
+        request: vi.fn().mockRejectedValue(timeoutError),
+        destroy: vi.fn(),
+      } as unknown as Dispatcher;
+
+      handler = new UndiciHttpHandler({ dispatcher: mockDispatcher });
+      try {
+        await handler.handle(createMockRequest());
+        expect.unreachable("should have thrown");
+      } catch (err: any) {
+        expect(err.name).toBe("TimeoutError");
+        expect(err.code).toBe("UND_ERR_CONNECT_TIMEOUT");
+        expect(err).toBe(timeoutError);
+      }
+    });
+  });
+
+  describe("socket errors", () => {
+    it("sets name to RequestTimeout on UND_ERR_SOCKET and preserves original error", async () => {
+      const socketError = Object.assign(new Error("socket error"), {
+        code: "UND_ERR_SOCKET",
+      });
+      const mockDispatcher = {
+        request: vi.fn().mockRejectedValue(socketError),
+        destroy: vi.fn(),
+      } as unknown as Dispatcher;
+
+      handler = new UndiciHttpHandler({ dispatcher: mockDispatcher });
+      try {
+        await handler.handle(createMockRequest());
+        expect.unreachable("should have thrown");
+      } catch (err: any) {
+        expect(err.name).toBe("RequestTimeout");
+        expect(err.code).toBe("UND_ERR_SOCKET");
+        expect(err).toBe(socketError);
+      }
+    });
+  });
+
+  describe("unknown errors", () => {
+    it("rethrows unknown errors unmodified", async () => {
+      const unknownError = new Error("something unexpected");
+      const mockDispatcher = {
+        request: vi.fn().mockRejectedValue(unknownError),
+        destroy: vi.fn(),
+      } as unknown as Dispatcher;
+
+      handler = new UndiciHttpHandler({ dispatcher: mockDispatcher });
+      try {
+        await handler.handle(createMockRequest());
+        expect.unreachable("should have thrown");
+      } catch (err: any) {
+        expect(err).toBe(unknownError);
+        expect(err.message).toBe("something unexpected");
+      }
     });
   });
 
