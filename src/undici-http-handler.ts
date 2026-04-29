@@ -140,7 +140,9 @@ export class UndiciHttpHandler
     const dispatcher = this.getOrCreateDispatcher(config);
 
     if (abortSignal?.aborted) {
-      throw buildAbortError();
+      throw Object.assign(new Error("Request aborted"), {
+        name: "AbortError",
+      });
     }
 
     // Build the full URL
@@ -216,17 +218,20 @@ export class UndiciHttpHandler
 
       return { response: httpResponse };
     } catch (err: any) {
-      if (err?.name === "AbortError" || err?.code === "UND_ERR_ABORTED") {
-        throw buildAbortError();
+      if (err?.code === "UND_ERR_ABORTED") {
+        throw Object.assign(err, { name: "AbortError" });
       }
+
       if (
-        err?.code === "UND_ERR_HEADERS_TIMEOUT" ||
         err?.code === "UND_ERR_BODY_TIMEOUT" ||
-        err?.code === "UND_ERR_CONNECT_TIMEOUT"
+        err?.code === "UND_ERR_CONNECT_TIMEOUT" ||
+        err?.code === "UND_ERR_HEADERS_TIMEOUT"
       ) {
-        throw Object.assign(new Error(`Request timeout: ${err.message}`), {
-          name: "TimeoutError",
-        });
+        throw Object.assign(err, { name: "TimeoutError" });
+      }
+
+      if (err?.code === "UND_ERR_SOCKET") {
+        throw Object.assign(err, { name: "RequestTimeout" });
       }
       throw err;
     }
@@ -246,10 +251,4 @@ export class UndiciHttpHandler
   public httpHandlerConfigs(): UndiciHttpHandlerOptions {
     return this.config ?? {};
   }
-}
-
-function buildAbortError(): Error {
-  return Object.assign(new Error("Request aborted"), {
-    name: "AbortError",
-  });
 }
