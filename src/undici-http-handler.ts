@@ -45,7 +45,9 @@ export interface UndiciHttpHandlerOptions {
  * An HTTP handler that uses undici instead of Node.js native http/https modules.
  * Drop-in replacement for `NodeHttpHandler` from `@smithy/node-http-handler`.
  */
-export class UndiciHttpHandler implements HttpHandler<UndiciHttpHandlerOptions> {
+export class UndiciHttpHandler
+  implements HttpHandler<UndiciHttpHandlerOptions>
+{
   private config?: UndiciHttpHandlerOptions;
   private configProvider: Promise<UndiciHttpHandlerOptions>;
   private dispatcher?: Dispatcher;
@@ -167,6 +169,13 @@ export class UndiciHttpHandler implements HttpHandler<UndiciHttpHandlerOptions> 
     // undici natively supports string | Buffer | Uint8Array | Readable | AsyncIterable as body.
     // Pass through directly to avoid buffering streams into memory.
     const body = request.body ?? null;
+
+    // undici does not support the Expect header through its request() API.
+    // The AWS SDK adds "Expect: 100-continue" for large request bodies, but
+    // undici sends the body immediately without waiting for a 100 Continue
+    // response, so the header is unnecessary and must be removed.
+    delete request.headers["Expect"];
+    delete request.headers["expect"];
 
     // Build undici request options
     const effectiveTimeout = requestTimeout ?? config.requestTimeout ?? 0;
