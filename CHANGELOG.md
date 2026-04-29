@@ -1,5 +1,11 @@
 # @trivikr-test/undici-http-handler
 
+## 0.1.3
+
+### Patch Changes
+
+- Rethrow errors with code 'UND_ERR_SOCKET' as RequestTimeout ([f41e01b548309f8b6ca9e219c7cc4f8210c54fe2](https://github.com/trivikr/trivikr-test-undici-http-handler/commit/f41e01b548309f8b6ca9e219c7cc4f8210c54fe2))
+
 ## 0.1.2
 
 ### Patch Changes
