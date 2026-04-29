@@ -280,6 +280,60 @@ describe("UndiciHttpHandler", () => {
     });
   });
 
+  describe("expect header", () => {
+    it("strips Expect header before sending to undici", async () => {
+      const mockDispatcher = {
+        request: vi.fn().mockResolvedValue({
+          statusCode: 200,
+          headers: {},
+          body: null,
+        }),
+        destroy: vi.fn(),
+      } as unknown as Dispatcher;
+
+      handler = new UndiciHttpHandler({ dispatcher: mockDispatcher });
+      await handler.handle(
+        createMockRequest({
+          method: "PUT",
+          headers: {
+            "content-type": "application/octet-stream",
+            Expect: "100-continue",
+          },
+        }),
+      );
+
+      const callArgs = (mockDispatcher.request as any).mock.calls[0][0];
+      expect(callArgs.headers).not.toHaveProperty("Expect");
+      expect(callArgs.headers).not.toHaveProperty("expect");
+    });
+
+    it("strips lowercase expect header", async () => {
+      const mockDispatcher = {
+        request: vi.fn().mockResolvedValue({
+          statusCode: 200,
+          headers: {},
+          body: null,
+        }),
+        destroy: vi.fn(),
+      } as unknown as Dispatcher;
+
+      handler = new UndiciHttpHandler({ dispatcher: mockDispatcher });
+      await handler.handle(
+        createMockRequest({
+          method: "PUT",
+          headers: {
+            "content-type": "application/octet-stream",
+            expect: "100-continue",
+          },
+        }),
+      );
+
+      const callArgs = (mockDispatcher.request as any).mock.calls[0][0];
+      expect(callArgs.headers).not.toHaveProperty("Expect");
+      expect(callArgs.headers).not.toHaveProperty("expect");
+    });
+  });
+
   describe("destroy", () => {
     it("destroys internal dispatcher", async () => {
       handler = new UndiciHttpHandler();
