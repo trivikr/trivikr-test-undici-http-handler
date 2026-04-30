@@ -159,7 +159,10 @@ export class UndiciHttpHandler
     // Build path with query string — skip buildQueryString when query is undefined.
     let path = request.path;
     if (request.query) {
-      path += `?${buildQueryString(request.query)}`;
+      const queryString = buildQueryString(request.query);
+      if (queryString) {
+        path += `?${queryString}`;
+      }
     }
     if (request.fragment) {
       path += `#${request.fragment}`;
