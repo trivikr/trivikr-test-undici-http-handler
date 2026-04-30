@@ -156,15 +156,10 @@ export class UndiciHttpHandler
       });
     }
 
-    // Build path with query string — skip buildQueryString when query is
-    // empty or undefined to avoid Object.keys().sort() overhead.
+    // Build path with query string — skip buildQueryString when query is undefined.
     let path = request.path;
-    const query = request.query;
-    if (query) {
-      const keys = Object.keys(query);
-      if (keys.length > 0) {
-        path += `?${buildQueryString(query)}`;
-      }
+    if (request.query) {
+      path += `?${buildQueryString(request.query)}`;
     }
     if (request.fragment) {
       path += `#${request.fragment}`;
