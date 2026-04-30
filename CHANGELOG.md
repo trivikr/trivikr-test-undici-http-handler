@@ -1,5 +1,11 @@
 # @trivikr-test/undici-http-handler
 
+## 0.1.4
+
+### Patch Changes
+
+- Optimize handle() hot path in UndiciHttpHandler ([7cf18a420d4a4d2fc366589568a2276ac53485e9](https://github.com/trivikr/trivikr-test-undici-http-handler/commit/7cf18a420d4a4d2fc366589568a2276ac53485e9))
+
 ## 0.1.3
 
 ### Patch Changes
