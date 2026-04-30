@@ -53,6 +53,11 @@ export class UndiciHttpHandler
   private dispatcher?: Dispatcher;
   private externalDispatcher = false;
 
+  // Cached timeout values resolved from config, avoids repeated nullish
+  // coalescing on every handle() call.
+  private resolvedBodyTimeout: number | undefined;
+  private resolvedHeadersTimeout: number | undefined;
+
   public readonly metadata = { handlerProtocol: "http/1.1" };
 
   /**
@@ -76,15 +81,17 @@ export class UndiciHttpHandler
       | UndiciHttpHandlerOptions
       | Provider<UndiciHttpHandlerOptions | void>,
   ) {
-    this.configProvider = new Promise((resolve, reject) => {
-      if (typeof options === "function") {
-        options()
-          .then((_options) => resolve(this.resolveConfig(_options)))
-          .catch(reject);
-      } else {
-        resolve(this.resolveConfig(options));
-      }
-    });
+    if (typeof options === "function") {
+      this.configProvider = options().then((_options) =>
+        this.resolveConfig(_options),
+      );
+    } else {
+      // Synchronous path: resolve config immediately and cache a
+      // pre-settled promise so the first handle() avoids a microtask.
+      const resolved = this.resolveConfig(options);
+      this.config = resolved;
+      this.configProvider = Promise.resolve(resolved);
+    }
   }
 
   private resolveConfig(
@@ -95,6 +102,10 @@ export class UndiciHttpHandler
       this.externalDispatcher = true;
       this.dispatcher = resolved.dispatcher;
     }
+    // Pre-compute timeout values so handle() doesn't repeat this work.
+    const timeout = resolved.requestTimeout ?? 0;
+    this.resolvedBodyTimeout = timeout || undefined;
+    this.resolvedHeadersTimeout = timeout || undefined;
     return resolved;
   }
 
@@ -104,14 +115,12 @@ export class UndiciHttpHandler
     }
 
     const connectTimeout = config.connectionTimeout ?? 0;
-    const bodyTimeout = config.requestTimeout ?? 0;
-    const headersTimeout = config.requestTimeout ?? 0;
     const connections = config.maxConnectionsPerOrigin ?? 50;
 
     this.dispatcher = new Agent({
       connections,
-      bodyTimeout: bodyTimeout || undefined,
-      headersTimeout: headersTimeout || undefined,
+      bodyTimeout: this.resolvedBodyTimeout,
+      headersTimeout: this.resolvedHeadersTimeout,
       connect: {
         timeout: connectTimeout || undefined,
         keepAlive: true,
@@ -136,8 +145,7 @@ export class UndiciHttpHandler
       this.config = await this.configProvider;
     }
 
-    const config = this.config;
-    const dispatcher = this.getOrCreateDispatcher(config);
+    const dispatcher = this.getOrCreateDispatcher(this.config);
 
     if (abortSignal?.aborted) {
       throw Object.assign(new Error("Request aborted"), {
@@ -145,59 +153,62 @@ export class UndiciHttpHandler
       });
     }
 
-    // Build the full URL
-    const queryString = buildQueryString(request.query || {});
+    // Build path with query string — skip buildQueryString when query is undefined.
     let path = request.path;
-    if (queryString) {
-      path += `?${queryString}`;
+    if (request.query) {
+      const queryString = buildQueryString(request.query);
+      if (queryString) {
+        path += `?${queryString}`;
+      }
     }
     if (request.fragment) {
       path += `#${request.fragment}`;
     }
 
-    let auth: string | undefined;
+    // Build origin string.
+    const port = request.port ? `:${request.port}` : "";
+    let origin: string;
     if (request.username != null || request.password != null) {
       const username = request.username ?? "";
       const password = request.password ?? "";
-      auth = `${username}:${password}`;
+      origin = `${request.protocol}//${username}:${password}@${request.hostname}${port}`;
+    } else {
+      origin = `${request.protocol}//${request.hostname}${port}`;
     }
 
-    const port = request.port ? `:${request.port}` : "";
-    let origin = `${request.protocol}//${request.hostname}${port}`;
-    if (auth) {
-      origin = `${request.protocol}//${auth}@${request.hostname}${port}`;
+    // Strip the Expect header — undici does not support 100-continue and
+    // sends the body immediately, so the header is unnecessary.
+    const headers = request.headers;
+    if ("Expect" in headers) delete headers["Expect"];
+    if ("expect" in headers) delete headers["expect"];
+
+    // Compute per-request timeout only when the caller overrides it;
+    // otherwise fall back to the pre-resolved config values.
+    let headersTimeout: number | undefined;
+    let bodyTimeout: number | undefined;
+    if (requestTimeout !== undefined) {
+      headersTimeout = requestTimeout || undefined;
+      bodyTimeout = requestTimeout || undefined;
+    } else {
+      headersTimeout = this.resolvedHeadersTimeout;
+      bodyTimeout = this.resolvedBodyTimeout;
     }
-
-    // undici natively supports string | Buffer | Uint8Array | Readable | AsyncIterable as body.
-    // Pass through directly to avoid buffering streams into memory.
-    const body = request.body ?? null;
-
-    // undici does not support the Expect header through its request() API.
-    // The AWS SDK adds "Expect: 100-continue" for large request bodies, but
-    // undici sends the body immediately without waiting for a 100 Continue
-    // response, so the header is unnecessary and must be removed.
-    delete request.headers["Expect"];
-    delete request.headers["expect"];
-
-    // Build undici request options
-    const effectiveTimeout = requestTimeout ?? config.requestTimeout ?? 0;
-    const requestOptions: Dispatcher.RequestOptions = {
-      origin,
-      path,
-      method: request.method as Dispatcher.HttpMethod,
-      headers: request.headers,
-      body,
-      headersTimeout: effectiveTimeout || undefined,
-      bodyTimeout: effectiveTimeout || undefined,
-      signal: abortSignal as AbortSignal | undefined,
-    };
 
     try {
       const {
         statusCode,
         headers: responseHeaders,
         body: responseBody,
-      } = await dispatcher.request(requestOptions);
+      } = await dispatcher.request({
+        origin,
+        path,
+        method: request.method as Dispatcher.HttpMethod,
+        headers,
+        body: request.body ?? null,
+        headersTimeout,
+        bodyTimeout,
+        signal: abortSignal as AbortSignal | undefined,
+      });
 
       // Transform undici headers (Record<string, string | string[]>) to HeaderBag (Record<string, string>)
       const transformedHeaders: Record<string, string> = {};
@@ -242,10 +253,40 @@ export class UndiciHttpHandler
     value: UndiciHttpHandlerOptions[typeof key],
   ): void {
     this.config = undefined;
-    this.configProvider = this.configProvider.then((config) => ({
-      ...config,
-      [key]: value,
-    }));
+    this.configProvider = this.configProvider.then((config) => {
+      const updated = { ...config, [key]: value };
+      // Re-compute cached timeout values.
+      const timeout = updated.requestTimeout ?? 0;
+      this.resolvedBodyTimeout = timeout || undefined;
+      this.resolvedHeadersTimeout = timeout || undefined;
+
+      if (key === "dispatcher") {
+        // Tear down the old internal dispatcher before switching.
+        if (this.dispatcher && !this.externalDispatcher) {
+          this.dispatcher.destroy();
+        }
+        if (value) {
+          this.dispatcher = value as Dispatcher;
+          this.externalDispatcher = true;
+        } else {
+          this.dispatcher = undefined;
+          this.externalDispatcher = false;
+        }
+      } else if (
+        key === "connectionTimeout" ||
+        key === "maxConnectionsPerOrigin"
+      ) {
+        // These options are baked into the Agent at creation time, so the
+        // existing internal dispatcher must be discarded so that
+        // getOrCreateDispatcher() builds a new one with the updated values.
+        if (this.dispatcher && !this.externalDispatcher) {
+          this.dispatcher.destroy();
+          this.dispatcher = undefined;
+        }
+      }
+
+      return updated;
+    });
   }
 
   public httpHandlerConfigs(): UndiciHttpHandlerOptions {
