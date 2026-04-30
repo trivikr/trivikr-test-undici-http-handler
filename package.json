@@ -6,7 +6,7 @@
   "module": "./dist/es/index.js",
   "types": "./dist/types/index.d.ts",
   "scripts": {
-    "benchmark": "node --expose-gc benchmarks/http-handlers.mjs",
+    "benchmark": "yarn build && node --expose-gc benchmarks/http-handlers.mjs",
     "build": "concurrently 'yarn:build:cjs' 'yarn:build:es' 'yarn:build:types'",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:es": "tsc -p tsconfig.es.json",
