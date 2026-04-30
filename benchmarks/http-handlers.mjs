@@ -75,20 +75,6 @@ await drain((await undiciHandler.handle(makeRequest())).response);
 
 boxplot(() => {
   summary(() => {
-    bench("NodeHttpHandler  – single GET", async () => {
-      const { response } = await nodeHandler.handle(makeRequest());
-      await drain(response);
-    });
-
-    bench("UndiciHttpHandler – single GET", async () => {
-      const { response } = await undiciHandler.handle(makeRequest());
-      await drain(response);
-    });
-  });
-});
-
-boxplot(() => {
-  summary(() => {
     bench("NodeHttpHandler  – 10 sequential GETs", async () => {
       for (let i = 0; i < 10; i++) {
         const { response } = await nodeHandler.handle(makeRequest());
