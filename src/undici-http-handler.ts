@@ -82,11 +82,8 @@ export class UndiciHttpHandler
       | Provider<UndiciHttpHandlerOptions | void>,
   ) {
     if (typeof options === "function") {
-      this.configProvider = options().then(
-        (_options) => this.resolveConfig(_options),
-        (err) => {
-          throw err;
-        },
+      this.configProvider = options().then((_options) =>
+        this.resolveConfig(_options),
       );
     } else {
       // Synchronous path: resolve config immediately and cache a
