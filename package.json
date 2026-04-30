@@ -6,6 +6,7 @@
   "module": "./dist/es/index.js",
   "types": "./dist/types/index.d.ts",
   "scripts": {
+    "benchmark": "node --expose-gc benchmarks/http-handlers.mjs",
     "build": "concurrently 'yarn:build:cjs' 'yarn:build:es' 'yarn:build:types'",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:es": "tsc -p tsconfig.es.json",
@@ -35,8 +36,10 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
+    "@smithy/node-http-handler": "^4.6.1",
     "@types/node": "^20.0.0",
     "concurrently": "^9.0.0",
+    "mitata": "^1.0.34",
     "typescript": "~5.7.0",
     "vitest": "^4.0.0"
   },
