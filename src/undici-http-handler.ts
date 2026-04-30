@@ -215,13 +215,9 @@ export class UndiciHttpHandler
         signal: abortSignal as AbortSignal | undefined,
       });
 
-      // Transform undici headers (Record<string, string | string[]>) to
-      // HeaderBag (Record<string, string>).  Use Object.keys() instead of
-      // for-in to avoid walking the prototype chain.
-      const keys = Object.keys(responseHeaders);
+      // Transform undici headers (Record<string, string | string[]>) to HeaderBag (Record<string, string>)
       const transformedHeaders: Record<string, string> = {};
-      for (let i = 0; i < keys.length; i++) {
-        const key = keys[i];
+      for (const key in responseHeaders) {
         const value = responseHeaders[key];
         if (value !== undefined) {
           transformedHeaders[key] = Array.isArray(value)
