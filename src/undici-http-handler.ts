@@ -262,6 +262,32 @@ export class UndiciHttpHandler
       const timeout = updated.requestTimeout ?? 0;
       this.resolvedBodyTimeout = timeout || undefined;
       this.resolvedHeadersTimeout = timeout || undefined;
+
+      if (key === "dispatcher") {
+        // Tear down the old internal dispatcher before switching.
+        if (this.dispatcher && !this.externalDispatcher) {
+          this.dispatcher.destroy();
+        }
+        if (value) {
+          this.dispatcher = value as Dispatcher;
+          this.externalDispatcher = true;
+        } else {
+          this.dispatcher = undefined;
+          this.externalDispatcher = false;
+        }
+      } else if (
+        key === "connectionTimeout" ||
+        key === "maxConnectionsPerOrigin"
+      ) {
+        // These options are baked into the Agent at creation time, so the
+        // existing internal dispatcher must be discarded so that
+        // getOrCreateDispatcher() builds a new one with the updated values.
+        if (this.dispatcher && !this.externalDispatcher) {
+          this.dispatcher.destroy();
+          this.dispatcher = undefined;
+        }
+      }
+
       return updated;
     });
   }
