@@ -486,8 +486,13 @@ describe("UndiciHttpHandler", () => {
   });
 
   describe("updateHttpClientConfig / httpHandlerConfigs", () => {
-    it("returns empty object before first request", () => {
+    it("returns config before first request when options are synchronous", () => {
       handler = new UndiciHttpHandler({ requestTimeout: 1000 });
+      expect(handler.httpHandlerConfigs()).toEqual({ requestTimeout: 1000 });
+    });
+
+    it("returns empty object before first request when options are async", () => {
+      handler = new UndiciHttpHandler(async () => ({ requestTimeout: 1000 }));
       expect(handler.httpHandlerConfigs()).toEqual({});
     });
 
