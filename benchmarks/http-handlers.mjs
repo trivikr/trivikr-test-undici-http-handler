@@ -115,8 +115,10 @@ boxplot(() => {
 // 5. Run and clean up
 // ---------------------------------------------------------------------------
 
-await run();
-
-nodeHandler.destroy();
-undiciHandler.destroy();
-server.close();
+try {
+  await run();
+} finally {
+  nodeHandler.destroy();
+  undiciHandler.destroy();
+  server.close();
+}
