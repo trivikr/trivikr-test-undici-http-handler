@@ -1597,6 +1597,7 @@ __metadata:
     "@smithy/protocol-http": "npm:^5.0.0"
     "@smithy/querystring-builder": "npm:^4.0.0"
     "@smithy/types": "npm:^4.0.0"
+    "@tsconfig/node20": "npm:^20.1.9"
     "@types/node": "npm:^20.0.0"
     concurrently: "npm:^9.0.0"
     mitata: "npm:^1.0.34"
@@ -1606,6 +1607,13 @@ __metadata:
     vitest: "npm:^4.0.0"
   languageName: unknown
   linkType: soft
+
+"@tsconfig/node20@npm:^20.1.9":
+  version: 20.1.9
+  resolution: "@tsconfig/node20@npm:20.1.9"
+  checksum: 10c0/04e4e515dc6ce9386af74accb565884c3771b355208acc3d3dee32f0ce4c1d12e59319e05200fb2b87a8655ed4d8eb9910e36667a91e4683879feea9938d90d1
+  languageName: node
+  linkType: hard
 
 "@tybys/wasm-util@npm:^0.10.1":
   version: 0.10.1
