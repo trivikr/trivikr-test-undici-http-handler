@@ -29,9 +29,13 @@ describe("UndiciHttpHandler S3 e2e", () => {
     client.destroy();
   });
 
-  it("head/put/get/delete", async () => {
+  it("list/head/put/get/delete", async () => {
     const key = "test-object";
     const body = randomBytes(16 * 1024); // 16 KB of random data
+
+    // listObjectsV2 should return empty before put
+    const listBeforePut = await client.listObjectsV2({ Bucket: bucketName });
+    expect(listBeforePut.Contents).toBeUndefined();
 
     // headObject should fail before put
     await expect(
@@ -45,6 +49,11 @@ describe("UndiciHttpHandler S3 e2e", () => {
       Body: body,
     });
     expect(putResponse.$metadata.httpStatusCode).toBe(200);
+
+    // listObjectsV2 should contain the key after put
+    const listAfterPut = await client.listObjectsV2({ Bucket: bucketName });
+    expect(listAfterPut.Contents).toHaveLength(1);
+    expect(listAfterPut.Contents![0].Key).toBe(key);
 
     // headObject should succeed after put
     const headResponse = await client.headObject({
