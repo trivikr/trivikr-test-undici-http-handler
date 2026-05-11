@@ -21,7 +21,7 @@ export interface UndiciHttpHandlerOptions {
 
 /**
  * An HTTP handler that uses undici instead of Node.js native http/https modules.
- * Drop-in replacement for `NodeHttpHandler` from `@smithy/node-http-handler`.
+ * Smithy-compatible request handler backed by undici.
  */
 export class UndiciHttpHandler
   implements HttpHandler<UndiciHttpHandlerOptions>

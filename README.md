@@ -1,13 +1,14 @@
 # @trivikr-test/undici-http-handler
 
-Test Http Handler which use Node.js undici instead of NodeHttpHandler
+Smithy-compatible HTTP handler backed by Node.js undici.
 
 ## Usage
 
-Use UndiciHttpHandler as drop-in replacement for NodeHttpHandler from
-@smithy/node-http-handler, by passing it in requestHandler configuration of client.
+Use `UndiciHttpHandler` as a Smithy-compatible request handler for generated
+clients. It uses undici for HTTP transport, and accepts optional undici
+`Dispatcher` to set up transport details.
 
-Example
+### Basic example
 
 ```js
 import { S3 } from "@aws-sdk/client-s3";
@@ -15,6 +16,32 @@ import { UndiciHttpHandler } from "@trivikr-test/undici-http-handler";
 
 const client = new S3({
   requestHandler: new UndiciHttpHandler(),
+});
+
+client.listBuckets().then(console.log);
+```
+
+### Configuring undici Dispatcher
+
+Pass an undici `Dispatcher` to configure transport behavior such as connection
+pooling and timeouts.
+
+```js
+import { S3 } from "@aws-sdk/client-s3";
+import { UndiciHttpHandler } from "@trivikr-test/undici-http-handler";
+import { Agent } from "undici";
+
+const dispatcher = new Agent({
+  connections: 50,
+  headersTimeout: 3000,
+  bodyTimeout: 3000,
+  connect: {
+    timeout: 3000,
+  },
+});
+
+const client = new S3({
+  requestHandler: new UndiciHttpHandler({ dispatcher }),
 });
 
 client.listBuckets().then(console.log);
