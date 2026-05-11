@@ -29,9 +29,14 @@ describe("UndiciHttpHandler S3 e2e", () => {
     client.destroy();
   });
 
-  it("putObject and getObject", async () => {
+  it("headObject, putObject, and getObject", async () => {
     const key = "test-object";
     const body = randomBytes(16 * 1024); // 16 KB of random data
+
+    // headObject should fail before put
+    await expect(
+      client.headObject({ Bucket: bucketName, Key: key })
+    ).rejects.toThrow();
 
     // Put the object
     const putResponse = await client.putObject({
@@ -40,6 +45,13 @@ describe("UndiciHttpHandler S3 e2e", () => {
       Body: body,
     });
     expect(putResponse.$metadata.httpStatusCode).toBe(200);
+
+    // headObject should succeed after put
+    const headResponse = await client.headObject({
+      Bucket: bucketName,
+      Key: key,
+    });
+    expect(headResponse.$metadata.httpStatusCode).toBe(200);
 
     // Get the object
     const getResponse = await client.getObject({
