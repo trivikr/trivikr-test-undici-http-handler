@@ -27,7 +27,6 @@ export class UndiciHttpHandler
   implements HttpHandler<UndiciHttpHandlerOptions>
 {
   private config: UndiciHttpHandlerOptions;
-  private dispatcher?: Dispatcher;
   private externalDispatcher = false;
 
   public readonly metadata = { handlerProtocol: "http/1.1" };
@@ -36,24 +35,23 @@ export class UndiciHttpHandler
     this.config = { ...options };
     if (this.config.dispatcher) {
       this.externalDispatcher = true;
-      this.dispatcher = this.config.dispatcher;
     }
   }
 
   private getOrCreateDispatcher(): Dispatcher {
-    if (this.dispatcher) {
-      return this.dispatcher;
+    if (this.config.dispatcher) {
+      return this.config.dispatcher;
     }
 
-    this.dispatcher = new Agent();
+    this.config.dispatcher = new Agent();
 
-    return this.dispatcher;
+    return this.config.dispatcher;
   }
 
   public destroy(): void {
-    if (this.dispatcher && !this.externalDispatcher) {
-      this.dispatcher.destroy();
-      this.dispatcher = undefined;
+    if (this.config.dispatcher && !this.externalDispatcher) {
+      this.config.dispatcher.destroy();
+      this.config.dispatcher = undefined;
     }
   }
 
@@ -165,14 +163,12 @@ export class UndiciHttpHandler
 
     if (key === "dispatcher") {
       // Tear down the old internal dispatcher before switching.
-      if (this.dispatcher && !this.externalDispatcher) {
-        this.dispatcher.destroy();
+      if (this.config.dispatcher && !this.externalDispatcher) {
+        this.config.dispatcher.destroy();
       }
       if (value) {
-        this.dispatcher = value as Dispatcher;
         this.externalDispatcher = true;
       } else {
-        this.dispatcher = undefined;
         this.externalDispatcher = false;
       }
     }
