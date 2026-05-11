@@ -15,7 +15,7 @@ describe("UndiciHttpHandler S3 e2e", () => {
   });
 
   afterAll(async () => {
-    // Empty the bucket
+    // Empty the bucket in case of test failure
     const { Contents } = await client.listObjectsV2({ Bucket: bucketName });
     if (Contents) {
       for (const { Key } of Contents) {
@@ -29,7 +29,7 @@ describe("UndiciHttpHandler S3 e2e", () => {
     client.destroy();
   });
 
-  it("headObject, putObject, and getObject", async () => {
+  it("head/put/get/delete", async () => {
     const key = "test-object";
     const body = randomBytes(16 * 1024); // 16 KB of random data
 
@@ -62,5 +62,17 @@ describe("UndiciHttpHandler S3 e2e", () => {
 
     const receivedBody = await getResponse.Body!.transformToByteArray();
     expect(Buffer.from(receivedBody)).toEqual(body);
+
+    // Delete the object
+    const deleteResponse = await client.deleteObject({
+      Bucket: bucketName,
+      Key: key,
+    });
+    expect(deleteResponse.$metadata.httpStatusCode).toBe(204);
+
+    // headObject should fail after delete
+    await expect(
+      client.headObject({ Bucket: bucketName, Key: key })
+    ).rejects.toThrow();
   });
 });
