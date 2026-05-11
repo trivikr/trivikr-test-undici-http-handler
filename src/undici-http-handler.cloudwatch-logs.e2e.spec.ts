@@ -25,8 +25,10 @@ describe("UndiciHttpHandler CloudWatch Logs e2e", () => {
   });
 
   afterAll(async () => {
-    await client.deleteLogStream({ logGroupName, logStreamName });
-    await client.deleteLogGroup({ logGroupName });
+    await client
+      .deleteLogStream({ logGroupName, logStreamName })
+      .catch(() => {});
+    await client.deleteLogGroup({ logGroupName }).catch(() => {});
     client.destroy();
   });
 
