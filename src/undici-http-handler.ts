@@ -9,29 +9,7 @@ import { Agent, Dispatcher } from "undici";
  */
 export interface UndiciHttpHandlerOptions {
   /**
-   * The maximum time in milliseconds that the connection phase of a request
-   * may take before the connection attempt is abandoned.
-   *
-   * Mapped to undici's `connect.timeout`.
-   */
-  connectionTimeout?: number;
-
-  /**
-   * The maximum time in milliseconds that a request may take.
-   * Mapped to undici's `headersTimeout` + `bodyTimeout`.
-   */
-  requestTimeout?: number;
-
-  /**
-   * Maximum number of connections per origin.
-   * Defaults to 50 (matching NodeHttpHandler's default maxSockets).
-   */
-  maxConnectionsPerOrigin?: number;
-
-  /**
    * An existing undici Dispatcher (Agent, Pool, Client, etc.) to use.
-   * When provided, connectionTimeout, requestTimeout, and maxConnectionsPerOrigin
-   * are ignored since the dispatcher is externally managed.
    */
   dispatcher?: Dispatcher;
 
@@ -43,7 +21,7 @@ export interface UndiciHttpHandlerOptions {
 
 /**
  * An HTTP handler that uses undici instead of Node.js native http/https modules.
- * Drop-in replacement for `NodeHttpHandler` from `@smithy/node-http-handler`.
+ * Smithy-compatible request handler backed by undici.
  */
 export class UndiciHttpHandler
   implements HttpHandler<UndiciHttpHandlerOptions>
@@ -52,11 +30,6 @@ export class UndiciHttpHandler
   private configProvider: Promise<UndiciHttpHandlerOptions>;
   private dispatcher?: Dispatcher;
   private externalDispatcher = false;
-
-  // Cached timeout values resolved from config, avoids repeated nullish
-  // coalescing on every handle() call.
-  private resolvedBodyTimeout: number | undefined;
-  private resolvedHeadersTimeout: number | undefined;
 
   public readonly metadata = { handlerProtocol: "http/1.1" };
 
@@ -102,30 +75,15 @@ export class UndiciHttpHandler
       this.externalDispatcher = true;
       this.dispatcher = resolved.dispatcher;
     }
-    // Pre-compute timeout values so handle() doesn't repeat this work.
-    const timeout = resolved.requestTimeout ?? 0;
-    this.resolvedBodyTimeout = timeout || undefined;
-    this.resolvedHeadersTimeout = timeout || undefined;
     return resolved;
   }
 
-  private getOrCreateDispatcher(config: UndiciHttpHandlerOptions): Dispatcher {
+  private getOrCreateDispatcher(): Dispatcher {
     if (this.dispatcher) {
       return this.dispatcher;
     }
 
-    const connectTimeout = config.connectionTimeout ?? 0;
-    const connections = config.maxConnectionsPerOrigin ?? 50;
-
-    this.dispatcher = new Agent({
-      connections,
-      bodyTimeout: this.resolvedBodyTimeout,
-      headersTimeout: this.resolvedHeadersTimeout,
-      connect: {
-        timeout: connectTimeout || undefined,
-        keepAlive: true,
-      },
-    });
+    this.dispatcher = new Agent();
 
     return this.dispatcher;
   }
@@ -145,7 +103,7 @@ export class UndiciHttpHandler
       this.config = await this.configProvider;
     }
 
-    const dispatcher = this.getOrCreateDispatcher(this.config);
+    const dispatcher = this.getOrCreateDispatcher();
 
     if (abortSignal?.aborted) {
       throw Object.assign(new Error("Request aborted"), {
@@ -182,17 +140,10 @@ export class UndiciHttpHandler
     if ("Expect" in headers) delete headers["Expect"];
     if ("expect" in headers) delete headers["expect"];
 
-    // Compute per-request timeout only when the caller overrides it;
-    // otherwise fall back to the pre-resolved config values.
-    let headersTimeout: number | undefined;
-    let bodyTimeout: number | undefined;
-    if (requestTimeout !== undefined) {
-      headersTimeout = requestTimeout || undefined;
-      bodyTimeout = requestTimeout || undefined;
-    } else {
-      headersTimeout = this.resolvedHeadersTimeout;
-      bodyTimeout = this.resolvedBodyTimeout;
-    }
+    const headersTimeout =
+      requestTimeout !== undefined ? requestTimeout || undefined : undefined;
+    const bodyTimeout =
+      requestTimeout !== undefined ? requestTimeout || undefined : undefined;
 
     try {
       const {
@@ -255,10 +206,6 @@ export class UndiciHttpHandler
     this.config = undefined;
     this.configProvider = this.configProvider.then((config) => {
       const updated = { ...config, [key]: value };
-      // Re-compute cached timeout values.
-      const timeout = updated.requestTimeout ?? 0;
-      this.resolvedBodyTimeout = timeout || undefined;
-      this.resolvedHeadersTimeout = timeout || undefined;
 
       if (key === "dispatcher") {
         // Tear down the old internal dispatcher before switching.
@@ -271,17 +218,6 @@ export class UndiciHttpHandler
         } else {
           this.dispatcher = undefined;
           this.externalDispatcher = false;
-        }
-      } else if (
-        key === "connectionTimeout" ||
-        key === "maxConnectionsPerOrigin"
-      ) {
-        // These options are baked into the Agent at creation time, so the
-        // existing internal dispatcher must be discarded so that
-        // getOrCreateDispatcher() builds a new one with the updated values.
-        if (this.dispatcher && !this.externalDispatcher) {
-          this.dispatcher.destroy();
-          this.dispatcher = undefined;
         }
       }
 

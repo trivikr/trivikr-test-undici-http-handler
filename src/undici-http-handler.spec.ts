@@ -36,6 +36,16 @@ function createMockRequest(overrides: Partial<HttpRequest> = {}): HttpRequest {
   );
 }
 
+function createMockLogger() {
+  return {
+    trace: vi.fn(),
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  };
+}
+
 beforeAll(async () => {
   server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url!, `http://localhost`);
@@ -105,12 +115,14 @@ describe("UndiciHttpHandler", () => {
     });
 
     it("creates a new instance with options", () => {
-      handler = new UndiciHttpHandler({ requestTimeout: 5000 });
+      handler = new UndiciHttpHandler({ logger: createMockLogger() });
       expect(handler.metadata).toEqual({ handlerProtocol: "http/1.1" });
     });
 
     it("creates a new instance with a provider function", async () => {
-      handler = new UndiciHttpHandler(async () => ({ requestTimeout: 5000 }));
+      handler = new UndiciHttpHandler(async () => ({
+        logger: createMockLogger(),
+      }));
       const { response } = await handler.handle(createMockRequest());
       expect(response.statusCode).toBe(200);
     });
@@ -122,7 +134,7 @@ describe("UndiciHttpHandler", () => {
     });
 
     it("static create instantiates from options", () => {
-      const result = UndiciHttpHandler.create({ requestTimeout: 1000 });
+      const result = UndiciHttpHandler.create({ logger: createMockLogger() });
       expect(result).toBeInstanceOf(UndiciHttpHandler);
       handler = result as UndiciHttpHandler;
     });
@@ -268,13 +280,6 @@ describe("UndiciHttpHandler", () => {
   });
 
   describe("timeouts", () => {
-    it("uses requestTimeout from options", async () => {
-      handler = new UndiciHttpHandler({ requestTimeout: 50 });
-      await expect(
-        handler.handle(createMockRequest({ path: "/delay?ms=5000" })),
-      ).rejects.toThrow();
-    });
-
     it("uses requestTimeout from handle options", async () => {
       handler = new UndiciHttpHandler();
       await expect(
@@ -487,29 +492,35 @@ describe("UndiciHttpHandler", () => {
 
   describe("updateHttpClientConfig / httpHandlerConfigs", () => {
     it("returns config before first request when options are synchronous", () => {
-      handler = new UndiciHttpHandler({ requestTimeout: 1000 });
-      expect(handler.httpHandlerConfigs()).toEqual({ requestTimeout: 1000 });
+      const logger = createMockLogger();
+      handler = new UndiciHttpHandler({ logger });
+      expect(handler.httpHandlerConfigs()).toEqual({ logger });
     });
 
     it("returns empty object before first request when options are async", () => {
-      handler = new UndiciHttpHandler(async () => ({ requestTimeout: 1000 }));
+      handler = new UndiciHttpHandler(async () => ({
+        logger: createMockLogger(),
+      }));
       expect(handler.httpHandlerConfigs()).toEqual({});
     });
 
     it("returns config after first request", async () => {
-      handler = new UndiciHttpHandler({ requestTimeout: 1000 });
+      const logger = createMockLogger();
+      handler = new UndiciHttpHandler({ logger });
       await handler.handle(createMockRequest());
       const configs = handler.httpHandlerConfigs();
-      expect(configs.requestTimeout).toBe(1000);
+      expect(configs.logger).toBe(logger);
     });
 
     it("updates config", async () => {
-      handler = new UndiciHttpHandler({ requestTimeout: 1000 });
+      const logger = createMockLogger();
+      const updatedLogger = createMockLogger();
+      handler = new UndiciHttpHandler({ logger });
       await handler.handle(createMockRequest());
-      handler.updateHttpClientConfig("requestTimeout", 2000);
+      handler.updateHttpClientConfig("logger", updatedLogger);
       // Config is reset, need another request to resolve
       await handler.handle(createMockRequest());
-      expect(handler.httpHandlerConfigs().requestTimeout).toBe(2000);
+      expect(handler.httpHandlerConfigs().logger).toBe(updatedLogger);
     });
   });
 });

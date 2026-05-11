@@ -4,6 +4,7 @@ import { HttpRequest } from "@smithy/protocol-http";
 import { NodeHttpHandler } from "@smithy/node-http-handler";
 import { UndiciHttpHandler } from "../dist/cjs/index.js";
 import { run, bench, boxplot, summary } from "mitata";
+import { Agent } from "undici";
 
 // ---------------------------------------------------------------------------
 // 1. Spin up a local HTTP server
@@ -60,10 +61,14 @@ const nodeHandler = new NodeHttpHandler({
   requestTimeout: 3000,
 });
 
-const undiciHandler = new UndiciHttpHandler({
-  connectionTimeout: 3000,
-  requestTimeout: 3000,
+const undiciDispatcher = new Agent({
+  bodyTimeout: 3000,
+  headersTimeout: 3000,
+  connect: {
+    timeout: 3000,
+  },
 });
+const undiciHandler = new UndiciHttpHandler({ dispatcher: undiciDispatcher });
 
 // Warm up both handlers so first-request setup cost is excluded.
 await drain((await nodeHandler.handle(makeRequest())).response);
@@ -120,5 +125,6 @@ try {
 } finally {
   nodeHandler.destroy();
   undiciHandler.destroy();
+  undiciDispatcher.destroy();
   server.close();
 }
