@@ -155,23 +155,38 @@ export class UndiciHttpHandler
     }
   }
 
-  public updateHttpClientConfig(
-    key: keyof UndiciHttpHandlerOptions,
-    value: UndiciHttpHandlerOptions[typeof key],
+  public updateHttpClientConfig<K extends keyof UndiciHttpHandlerOptions>(
+    key: K,
+    value: NonNullable<UndiciHttpHandlerOptions[K]>,
   ): void {
-    (this.config as any)[key] = value;
-
-    if (key === "dispatcher") {
-      // Tear down the old internal dispatcher before switching.
-      if (this.config.dispatcher && !this.externalDispatcher) {
-        this.config.dispatcher.destroy();
-      }
-      if (value) {
-        this.externalDispatcher = true;
-      } else {
-        this.externalDispatcher = false;
-      }
+    if (key !== "dispatcher") {
+      (this.config as any)[key] = value;
+      return;
     }
+
+    // Validate before any side effects so the handler isn't left in a broken state.
+    if (!(value instanceof Dispatcher)) {
+      throw new Error(
+        "updateHttpClientConfig: value for 'dispatcher' must be an instance of undici Dispatcher.",
+      );
+    }
+
+    // No-op when the same dispatcher instance is reassigned.
+    if (value === this.config.dispatcher) {
+      return;
+    }
+
+    // Capture the previous dispatcher before assignment.
+    const previousDispatcher = this.config.dispatcher;
+
+    // Destroy the previous dispatcher only if it was internally created.
+    if (previousDispatcher && !this.externalDispatcher) {
+      previousDispatcher.destroy();
+    }
+
+    // Assign the new value and update externalDispatcher based on it.
+    this.config.dispatcher = value as Dispatcher;
+    this.externalDispatcher = true;
   }
 
   public httpHandlerConfigs(): UndiciHttpHandlerOptions {
