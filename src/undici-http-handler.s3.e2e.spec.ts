@@ -29,7 +29,7 @@ describe("UndiciHttpHandler S3 e2e", () => {
     client.destroy();
   });
 
-  it("list/head/put/get/delete", async () => {
+  it.sequential("list/head/put/get/delete", async () => {
     const key = "test-object";
     const body = randomBytes(16 * 1024); // 16 KB of random data
 
@@ -84,4 +84,45 @@ describe("UndiciHttpHandler S3 e2e", () => {
       client.headObject({ Bucket: bucketName, Key: key })
     ).rejects.toThrow();
   });
+
+  describe("event stream", () => {
+    const key = "test-select.csv";
+    const csvContent = "name,age\nAlice,30\nBob,25\nCharlie,35";
+
+    beforeAll(async () => {
+      await client.putObject({
+        Bucket: bucketName,
+        Key: key,
+        Body: csvContent,
+        ContentType: "text/csv",
+      });
+    });
+
+    afterAll(async () => {
+      await client.deleteObject({ Bucket: bucketName, Key: key });
+    });
+
+    it("selectObjectContent", async () => {
+      const response = await client.selectObjectContent({
+        Bucket: bucketName,
+        Key: key,
+        Expression: "SELECT * FROM s3object s WHERE CAST(s.age AS INT) > 28",
+        ExpressionType: "SQL",
+        InputSerialization: { CSV: { FileHeaderInfo: "USE" } },
+        OutputSerialization: { CSV: {} },
+      });
+
+      const records: string[] = [];
+      for await (const event of response.Payload!) {
+        if (event.Records?.Payload) {
+          records.push(Buffer.from(event.Records.Payload).toString("utf-8"));
+        }
+      }
+
+      const result = records.join("");
+      expect(result).toContain("Alice");
+      expect(result).toContain("Charlie");
+      expect(result).not.toContain("Bob");
+    });
+  })
 });
