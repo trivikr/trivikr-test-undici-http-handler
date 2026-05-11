@@ -70,9 +70,22 @@ const undiciDispatcher = new Agent({
 });
 const undiciHandler = new UndiciHttpHandler({ dispatcher: undiciDispatcher });
 
+const undiciPipeliningDispatcher = new Agent({
+  pipelining: 10,
+  bodyTimeout: 3000,
+  headersTimeout: 3000,
+  connect: {
+    timeout: 3000,
+  },
+});
+const undiciPipeliningHandler = new UndiciHttpHandler({
+  dispatcher: undiciPipeliningDispatcher,
+});
+
 // Warm up both handlers so first-request setup cost is excluded.
 await drain((await nodeHandler.handle(makeRequest())).response);
 await drain((await undiciHandler.handle(makeRequest())).response);
+await drain((await undiciPipeliningHandler.handle(makeRequest())).response);
 
 // ---------------------------------------------------------------------------
 // 4. Benchmarks
@@ -90,6 +103,14 @@ boxplot(() => {
     bench("UndiciHttpHandler – 10 sequential GETs", async () => {
       for (let i = 0; i < 10; i++) {
         const { response } = await undiciHandler.handle(makeRequest());
+        await drain(response);
+      }
+    });
+
+    bench("UndiciHttpHandler pipelining=10 – 10 sequential GETs", async () => {
+      for (let i = 0; i < 10; i++) {
+        const { response } =
+          await undiciPipeliningHandler.handle(makeRequest());
         await drain(response);
       }
     });
@@ -113,6 +134,15 @@ boxplot(() => {
       });
       await Promise.all(tasks);
     });
+
+    bench("UndiciHttpHandler pipelining=10 – 50 concurrent GETs", async () => {
+      const tasks = Array.from({ length: 50 }, async () => {
+        const { response } =
+          await undiciPipeliningHandler.handle(makeRequest());
+        await drain(response);
+      });
+      await Promise.all(tasks);
+    });
   });
 });
 
@@ -125,6 +155,8 @@ try {
 } finally {
   nodeHandler.destroy();
   undiciHandler.destroy();
+  undiciPipeliningHandler.destroy();
   undiciDispatcher.destroy();
+  undiciPipeliningDispatcher.destroy();
   server.close();
 }
