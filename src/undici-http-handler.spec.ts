@@ -127,23 +127,6 @@ describe("UndiciHttpHandler", () => {
       expect(response.statusCode).toBe(200);
     });
 
-    it("static create returns existing HttpHandler instance", () => {
-      handler = new UndiciHttpHandler();
-      const result = UndiciHttpHandler.create(handler);
-      expect(result).toBe(handler);
-    });
-
-    it("static create instantiates from options", () => {
-      const result = UndiciHttpHandler.create({ logger: createMockLogger() });
-      expect(result).toBeInstanceOf(UndiciHttpHandler);
-      handler = result as UndiciHttpHandler;
-    });
-
-    it("static create instantiates with no arguments", () => {
-      const result = UndiciHttpHandler.create();
-      expect(result).toBeInstanceOf(UndiciHttpHandler);
-      handler = result as UndiciHttpHandler;
-    });
   });
 
   describe("handle", () => {

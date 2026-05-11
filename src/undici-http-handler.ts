@@ -33,22 +33,6 @@ export class UndiciHttpHandler
 
   public readonly metadata = { handlerProtocol: "http/1.1" };
 
-  /**
-   * Returns the input if it is an HttpHandler of any class,
-   * or instantiates a new instance of this handler.
-   */
-  public static create(
-    instanceOrOptions?:
-      | HttpHandler<any>
-      | UndiciHttpHandlerOptions
-      | Provider<UndiciHttpHandlerOptions | void>,
-  ) {
-    if (typeof (instanceOrOptions as any)?.handle === "function") {
-      return instanceOrOptions as HttpHandler<any>;
-    }
-    return new UndiciHttpHandler(instanceOrOptions as UndiciHttpHandlerOptions);
-  }
-
   constructor(
     options?:
       | UndiciHttpHandlerOptions
