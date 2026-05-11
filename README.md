@@ -56,5 +56,5 @@ Our benchmarks spin up a local HTTP server and runs two scenarios:
 - **50 concurrent GETs** – measures throughput under parallel load using
   `Promise.all`.
 
-The results show UndiciHttpHandler spends **15%-35%** less time as compared to
+The results show UndiciHttpHandler spends **15%-25%** less time as compared to
 NodeHttpHandler from `@smithy/node-http-handler`
