@@ -45,8 +45,10 @@ const s3WithUndici = new S3Client({ requestHandler: undiciHandler });
 async function consumeBody(response) {
   const body = response.Body;
   if (body) {
-    // transformToByteArray reads the entire stream
-    await body.transformToByteArray();
+    // Discard the stream without buffering into memory
+    for await (const _ of body) {
+      // no-op: just drain the stream
+    }
   }
 }
 
