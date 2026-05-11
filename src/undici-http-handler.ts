@@ -171,6 +171,11 @@ export class UndiciHttpHandler
       );
     }
 
+    // No-op when the same dispatcher instance is reassigned.
+    if (value === this.config.dispatcher) {
+      return;
+    }
+
     // Capture the previous dispatcher before assignment.
     const previousDispatcher = this.config.dispatcher;
 
