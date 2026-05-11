@@ -31,7 +31,7 @@ describe("UndiciHttpHandler CloudWatch Logs e2e", () => {
   });
 
   it("startLiveTail", { timeout: 60_000 }, async () => {
-    expect.assertions(3);
+    expect.assertions(4);
     const testMessage = "test message";
 
     const response = await client.startLiveTail({
@@ -61,6 +61,7 @@ describe("UndiciHttpHandler CloudWatch Logs e2e", () => {
           const messages =
             event.sessionUpdate.sessionResults?.map((r) => r.message) ?? [];
           if (messages.includes(testMessage)) {
+            expect(messages).toContain(testMessage);
             break;
           }
         }
