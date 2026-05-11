@@ -57,4 +57,7 @@ Our benchmarks spin up a local HTTP server and runs two scenarios:
   `Promise.all`.
 
 The results show UndiciHttpHandler spends **15%-25%** less time as compared to
-NodeHttpHandler from `@smithy/node-http-handler`
+NodeHttpHandler from `@smithy/node-http-handler`.
+
+We recommend running benchmarks for your own use case on your own setup, as
+results will vary depending on workload, network conditions, and environment.
