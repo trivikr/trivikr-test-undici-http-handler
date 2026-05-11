@@ -46,3 +46,15 @@ const client = new S3({
 
 client.listBuckets().then(console.log);
 ```
+
+## Benchmarks
+
+Our benchmarks spin up a local HTTP server and runs two scenarios:
+
+- **10 sequential GETs** – measures per-request latency when requests are issued
+  one after another.
+- **50 concurrent GETs** – measures throughput under parallel load using
+  `Promise.all`.
+
+The results show UndiciHttpHandler spends **15%-35%** less time as compared to
+NodeHttpHandler from `@smithy/node-http-handler`
