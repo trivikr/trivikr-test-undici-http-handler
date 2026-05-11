@@ -155,9 +155,9 @@ export class UndiciHttpHandler
     }
   }
 
-  public updateHttpClientConfig(
-    key: keyof UndiciHttpHandlerOptions,
-    value: UndiciHttpHandlerOptions[typeof key],
+  public updateHttpClientConfig<K extends keyof UndiciHttpHandlerOptions>(
+    key: K,
+    value: NonNullable<UndiciHttpHandlerOptions[K]>,
   ): void {
     if (key !== "dispatcher") {
       (this.config as any)[key] = value;
