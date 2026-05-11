@@ -15,7 +15,7 @@ import {
   it,
   vi,
 } from "vitest";
-import { Dispatcher } from "undici";
+import { Agent, Dispatcher } from "undici";
 
 import { UndiciHttpHandler } from "./undici-http-handler";
 
@@ -489,6 +489,92 @@ describe("UndiciHttpHandler", () => {
       // Config is reset, need another request to resolve
       await handler.handle(createMockRequest());
       expect(handler.httpHandlerConfigs().logger).toBe(updatedLogger);
+    });
+
+    it("throws if dispatcher value is not a Dispatcher instance", () => {
+      handler = new UndiciHttpHandler();
+      expect(() =>
+        handler.updateHttpClientConfig("dispatcher", undefined as any),
+      ).toThrow("must be an instance of undici Dispatcher");
+    });
+
+    it("throws if dispatcher value is a plain object", () => {
+      handler = new UndiciHttpHandler();
+      expect(() =>
+        handler.updateHttpClientConfig("dispatcher", {} as any),
+      ).toThrow("must be an instance of undici Dispatcher");
+    });
+
+    it("does not destroy previous dispatcher when validation fails", async () => {
+      handler = new UndiciHttpHandler();
+      // Trigger internal dispatcher creation
+      await handler.handle(createMockRequest());
+
+      expect(() =>
+        handler.updateHttpClientConfig("dispatcher", "invalid" as any),
+      ).toThrow("must be an instance of undici Dispatcher");
+
+      // Handler should still work with its internal dispatcher
+      const { response } = await handler.handle(createMockRequest());
+      expect(response.statusCode).toBe(200);
+    });
+
+    it("destroys previous internal dispatcher when updating with a new Dispatcher", async () => {
+      handler = new UndiciHttpHandler();
+      // Trigger internal dispatcher creation
+      await handler.handle(createMockRequest());
+
+      const newDispatcher = new Agent();
+
+      handler.updateHttpClientConfig("dispatcher", newDispatcher);
+
+      // The new dispatcher should be used for subsequent requests
+      const { response } = await handler.handle(createMockRequest());
+      expect(response.statusCode).toBe(200);
+
+      newDispatcher.destroy();
+    });
+
+    it("does not destroy previous external dispatcher when updating", async () => {
+      const oldDispatcher = new Agent();
+
+      handler = new UndiciHttpHandler({ dispatcher: oldDispatcher });
+      await handler.handle(createMockRequest());
+
+      const newDispatcher = new Agent();
+
+      handler.updateHttpClientConfig("dispatcher", newDispatcher);
+
+      // Old external dispatcher should still be usable (not destroyed)
+      const { statusCode } = await oldDispatcher.request({
+        origin: `http://localhost:${port}`,
+        path: "/",
+        method: "GET",
+      });
+      expect(statusCode).toBe(200);
+
+      oldDispatcher.destroy();
+      newDispatcher.destroy();
+    });
+
+    it("marks new dispatcher as external after update", async () => {
+      const newDispatcher = new Agent();
+
+      handler = new UndiciHttpHandler();
+      handler.updateHttpClientConfig("dispatcher", newDispatcher);
+
+      // destroy() should not destroy an external dispatcher — handler still usable after
+      handler.destroy();
+
+      // The dispatcher should still be functional since it's external
+      const { statusCode } = await newDispatcher.request({
+        origin: `http://localhost:${port}`,
+        path: "/",
+        method: "GET",
+      });
+      expect(statusCode).toBe(200);
+
+      newDispatcher.destroy();
     });
   });
 });
