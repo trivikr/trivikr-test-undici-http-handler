@@ -1,5 +1,12 @@
 # @trivikr-test/undici-http-handler
 
+## 0.3.1
+
+### Patch Changes
+
+- Exclude test files in compilation ([4b15aadb3547baa1eb53fd6960cf09889c3ef876](https://github.com/trivikr/trivikr-test-undici-http-handler/commit/4b15aadb3547baa1eb53fd6960cf09889c3ef876))
+- Use @tsconfig/node20 in tsconfig ([c3ce414615e1bb106074d8fc11bee3a179c96306](https://github.com/trivikr/trivikr-test-undici-http-handler/commit/c3ce414615e1bb106074d8fc11bee3a179c96306))
+
 ## 0.3.0
 
 ### Minor Changes
