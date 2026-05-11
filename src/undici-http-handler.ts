@@ -1,7 +1,7 @@
 import type { HttpHandler, HttpRequest } from "@smithy/protocol-http";
 import { HttpResponse } from "@smithy/protocol-http";
 import { buildQueryString } from "@smithy/querystring-builder";
-import type { HttpHandlerOptions, Logger, Provider } from "@smithy/types";
+import type { HttpHandlerOptions, Logger } from "@smithy/types";
 import { Agent, Dispatcher } from "undici";
 
 /**
@@ -26,40 +26,18 @@ export interface UndiciHttpHandlerOptions {
 export class UndiciHttpHandler
   implements HttpHandler<UndiciHttpHandlerOptions>
 {
-  private config?: UndiciHttpHandlerOptions;
-  private configProvider: Promise<UndiciHttpHandlerOptions>;
+  private config: UndiciHttpHandlerOptions;
   private dispatcher?: Dispatcher;
   private externalDispatcher = false;
 
   public readonly metadata = { handlerProtocol: "http/1.1" };
 
-  constructor(
-    options?:
-      | UndiciHttpHandlerOptions
-      | Provider<UndiciHttpHandlerOptions | void>,
-  ) {
-    if (typeof options === "function") {
-      this.configProvider = options().then((_options) =>
-        this.resolveConfig(_options),
-      );
-    } else {
-      // Synchronous path: resolve config immediately and cache a
-      // pre-settled promise so the first handle() avoids a microtask.
-      const resolved = this.resolveConfig(options);
-      this.config = resolved;
-      this.configProvider = Promise.resolve(resolved);
-    }
-  }
-
-  private resolveConfig(
-    options?: UndiciHttpHandlerOptions | void,
-  ): UndiciHttpHandlerOptions {
-    const resolved: UndiciHttpHandlerOptions = { ...options };
-    if (resolved.dispatcher) {
+  constructor(options?: UndiciHttpHandlerOptions) {
+    this.config = { ...options };
+    if (this.config.dispatcher) {
       this.externalDispatcher = true;
-      this.dispatcher = resolved.dispatcher;
+      this.dispatcher = this.config.dispatcher;
     }
-    return resolved;
   }
 
   private getOrCreateDispatcher(): Dispatcher {
@@ -83,10 +61,6 @@ export class UndiciHttpHandler
     request: HttpRequest,
     { abortSignal, requestTimeout }: HttpHandlerOptions = {},
   ): Promise<{ response: HttpResponse }> {
-    if (!this.config) {
-      this.config = await this.configProvider;
-    }
-
     const dispatcher = this.getOrCreateDispatcher();
 
     if (abortSignal?.aborted) {
@@ -187,26 +161,21 @@ export class UndiciHttpHandler
     key: keyof UndiciHttpHandlerOptions,
     value: UndiciHttpHandlerOptions[typeof key],
   ): void {
-    this.config = undefined;
-    this.configProvider = this.configProvider.then((config) => {
-      const updated = { ...config, [key]: value };
+    (this.config as any)[key] = value;
 
-      if (key === "dispatcher") {
-        // Tear down the old internal dispatcher before switching.
-        if (this.dispatcher && !this.externalDispatcher) {
-          this.dispatcher.destroy();
-        }
-        if (value) {
-          this.dispatcher = value as Dispatcher;
-          this.externalDispatcher = true;
-        } else {
-          this.dispatcher = undefined;
-          this.externalDispatcher = false;
-        }
+    if (key === "dispatcher") {
+      // Tear down the old internal dispatcher before switching.
+      if (this.dispatcher && !this.externalDispatcher) {
+        this.dispatcher.destroy();
       }
-
-      return updated;
-    });
+      if (value) {
+        this.dispatcher = value as Dispatcher;
+        this.externalDispatcher = true;
+      } else {
+        this.dispatcher = undefined;
+        this.externalDispatcher = false;
+      }
+    }
   }
 
   public httpHandlerConfigs(): UndiciHttpHandlerOptions {

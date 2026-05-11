@@ -119,14 +119,6 @@ describe("UndiciHttpHandler", () => {
       expect(handler.metadata).toEqual({ handlerProtocol: "http/1.1" });
     });
 
-    it("creates a new instance with a provider function", async () => {
-      handler = new UndiciHttpHandler(async () => ({
-        logger: createMockLogger(),
-      }));
-      const { response } = await handler.handle(createMockRequest());
-      expect(response.statusCode).toBe(200);
-    });
-
   });
 
   describe("handle", () => {
@@ -474,17 +466,10 @@ describe("UndiciHttpHandler", () => {
   });
 
   describe("updateHttpClientConfig / httpHandlerConfigs", () => {
-    it("returns config before first request when options are synchronous", () => {
+    it("returns config before first request", () => {
       const logger = createMockLogger();
       handler = new UndiciHttpHandler({ logger });
       expect(handler.httpHandlerConfigs()).toEqual({ logger });
-    });
-
-    it("returns empty object before first request when options are async", () => {
-      handler = new UndiciHttpHandler(async () => ({
-        logger: createMockLogger(),
-      }));
-      expect(handler.httpHandlerConfigs()).toEqual({});
     });
 
     it("returns config after first request", async () => {
