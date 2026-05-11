@@ -1,5 +1,11 @@
 # @trivikr-test/undici-http-handler
 
+## 0.2.0
+
+### Minor Changes
+
+- Remove redundant undici handler config options ([20f20665943266ebd98de501dd4130b94ae8b301](https://github.com/trivikr/trivikr-test-undici-http-handler/commit/20f20665943266ebd98de501dd4130b94ae8b301))
+
 ## 0.1.4
 
 ### Patch Changes
