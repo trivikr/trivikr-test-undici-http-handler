@@ -7,6 +7,7 @@
   "types": "./dist/types/index.d.ts",
   "scripts": {
     "benchmark": "node --expose-gc benchmarks/http-handlers.mjs",
+    "benchmark:s3": "node --expose-gc benchmarks/s3-get-object.mjs",
     "build": "concurrently 'yarn:build:cjs' 'yarn:build:es' 'yarn:build:types'",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:es": "tsc -p tsconfig.es.json",
@@ -35,6 +36,7 @@
     "undici": "^7.0.0"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.0.0",
     "@changesets/cli": "^2.31.0",
     "@smithy/node-http-handler": "^4.6.1",
     "@types/node": "^20.0.0",
