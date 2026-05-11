@@ -1,5 +1,15 @@
 # @trivikr-test/undici-http-handler
 
+## 0.3.0
+
+### Minor Changes
+
+- Remove `static create()` factory method and async config provider ([b3c15732c08814095cb608d4e5ab33bb73c9e1d2](https://github.com/trivikr/trivikr-test-undici-http-handler/commit/b3c15732c08814095cb608d4e5ab33bb73c9e1d2))
+
+### Patch Changes
+
+- Validate dispatcher in updateHttpClientConfig with early return ([ba7313ad80c8371f39d7d6a892a80a58d5f761dc](https://github.com/trivikr/trivikr-test-undici-http-handler/commit/ba7313ad80c8371f39d7d6a892a80a58d5f761dc))
+
 ## 0.2.0
 
 ### Minor Changes
