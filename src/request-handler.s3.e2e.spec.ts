@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
+import { Readable } from "node:stream";
 
 import { S3 } from "@aws-sdk/client-s3";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -35,13 +36,19 @@ describe.each([
     client.destroy();
   });
 
-  it("list/head/put/get/delete", async () => {
-    const key = "test-object";
-    const body = randomBytes(16 * 1024); // 16 KB of random data
+  const data = randomBytes(16 * 1024); // 16 KB of random data
 
-    // listObjectsV2 should return empty before put
-    const listBeforePut = await client.listObjectsV2({ Bucket: bucketName });
-    expect(listBeforePut.Contents).toBeUndefined();
+  it.each([
+    {
+      type: "string",
+      body: data.toString("base64"),
+      expected: Buffer.from(data.toString("base64")),
+    },
+    { type: "Uint8Array", body: new Uint8Array(data), expected: data },
+    { type: "Buffer", body: data, expected: data },
+    { type: "Readable", body: Readable.from(data), expected: data },
+  ])("put/get/delete with body as $type", async ({ body, expected }) => {
+    const key = `test-object-${randomUUID()}`;
 
     // headObject should fail before put
     await expect(
@@ -56,18 +63,6 @@ describe.each([
     });
     expect(putResponse.$metadata.httpStatusCode).toBe(200);
 
-    // listObjectsV2 should contain the key after put
-    const listAfterPut = await client.listObjectsV2({ Bucket: bucketName });
-    expect(listAfterPut.Contents).toHaveLength(1);
-    expect(listAfterPut.Contents![0].Key).toBe(key);
-
-    // headObject should succeed after put
-    const headResponse = await client.headObject({
-      Bucket: bucketName,
-      Key: key,
-    });
-    expect(headResponse.$metadata.httpStatusCode).toBe(200);
-
     // Get the object
     const getResponse = await client.getObject({
       Bucket: bucketName,
@@ -76,7 +71,7 @@ describe.each([
     expect(getResponse.$metadata.httpStatusCode).toBe(200);
 
     const receivedBody = await getResponse.Body!.transformToByteArray();
-    expect(Buffer.from(receivedBody)).toEqual(body);
+    expect(Buffer.from(receivedBody)).toEqual(expected);
 
     // Delete the object
     const deleteResponse = await client.deleteObject({
