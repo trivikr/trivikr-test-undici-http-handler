@@ -5,12 +5,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { UndiciHttpHandler } from "./undici-http-handler";
 
-describe("UndiciHttpHandler CloudWatch Logs e2e", () => {
+describe.each([
+  { name: "default", requestHandler: undefined },
+  { name: "UndiciHttpHandler", requestHandler: new UndiciHttpHandler() },
+])("CloudWatchLogs e2e with requestHandler: $name", ({ requestHandler }) => {
   const logGroupName = `/test/undici-http-handler/${randomUUID()}`;
   const logStreamName = "test-stream";
-  const client = new CloudWatchLogs({
-    requestHandler: new UndiciHttpHandler(),
-  });
+  const client = new CloudWatchLogs({ requestHandler });
   let logGroupArn: string;
 
   beforeAll(async () => {
