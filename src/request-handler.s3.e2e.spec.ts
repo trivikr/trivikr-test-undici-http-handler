@@ -60,6 +60,8 @@ describe.each([
       Bucket: bucketName,
       Key: key,
       Body: body,
+      // ContentLength is required for streaming bodies (Readable) because handler cannot
+      // determine the content length of a stream on its own, unlike string or Buffer bodies.
       ...(body instanceof Readable && { ContentLength: expected.length }),
     });
     expect(putResponse.$metadata.httpStatusCode).toBe(200);
