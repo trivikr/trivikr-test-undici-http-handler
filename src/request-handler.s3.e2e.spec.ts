@@ -5,13 +5,19 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { UndiciHttpHandler } from "./undici-http-handler";
 
-describe("UndiciHttpHandler S3 e2e", () => {
+describe.each([
+  { name: "default", requestHandler: undefined },
+  { name: "UndiciHttpHandler", requestHandler: new UndiciHttpHandler() },
+])("S3 e2e with requestHandler: $name", ({ requestHandler }) => {
   const bucketName = `test-undici-http-handler-${randomUUID()}`;
-  const client = new S3({ requestHandler: new UndiciHttpHandler() });
+  const client = new S3({ requestHandler });
 
   beforeAll(async () => {
     await client.createBucket({ Bucket: bucketName });
-    await client.waitUntilBucketExists({ Bucket: bucketName }, { maxWaitTime: 60 });
+    await client.waitUntilBucketExists(
+      { Bucket: bucketName },
+      { maxWaitTime: 60 },
+    );
   });
 
   afterAll(async () => {
@@ -39,7 +45,7 @@ describe("UndiciHttpHandler S3 e2e", () => {
 
     // headObject should fail before put
     await expect(
-      client.headObject({ Bucket: bucketName, Key: key })
+      client.headObject({ Bucket: bucketName, Key: key }),
     ).rejects.toThrow();
 
     // Put the object
@@ -81,7 +87,7 @@ describe("UndiciHttpHandler S3 e2e", () => {
 
     // headObject should fail after delete
     await expect(
-      client.headObject({ Bucket: bucketName, Key: key })
+      client.headObject({ Bucket: bucketName, Key: key }),
     ).rejects.toThrow();
   });
 });
