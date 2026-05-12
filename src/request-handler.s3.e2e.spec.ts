@@ -60,6 +60,7 @@ describe.each([
       Bucket: bucketName,
       Key: key,
       Body: body,
+      ...(body instanceof Readable && { ContentLength: expected.length }),
     });
     expect(putResponse.$metadata.httpStatusCode).toBe(200);
 
