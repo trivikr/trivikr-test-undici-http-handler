@@ -1,3 +1,5 @@
+import type { Readable } from "node:stream";
+
 import type { HttpHandler, HttpRequest } from "@smithy/protocol-http";
 import { HttpResponse } from "@smithy/protocol-http";
 import { buildQueryString } from "@smithy/querystring-builder";
@@ -95,6 +97,20 @@ export class UndiciHttpHandler
     const headers = request.headers;
     if ("Expect" in headers) delete headers["Expect"];
     if ("expect" in headers) delete headers["expect"];
+
+    // Strip transfer-encoding header for streaming bodies — undici manages
+    // chunked encoding internally for streams, so the explicit header is not
+    // needed and causes issues with content-length negotiation.
+    // Uses the same duck-typing check as undici's isStream (pipe + on).
+    const body = request.body as Readable | undefined;
+    if (
+      body &&
+      typeof body.pipe === "function" &&
+      typeof body.on === "function"
+    ) {
+      if ("transfer-encoding" in headers) delete headers["transfer-encoding"];
+      if ("Transfer-Encoding" in headers) delete headers["Transfer-Encoding"];
+    }
 
     const headersTimeout =
       requestTimeout !== undefined ? requestTimeout || undefined : undefined;
