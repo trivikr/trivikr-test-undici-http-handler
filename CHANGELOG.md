@@ -1,5 +1,11 @@
 # @trivikr-test/undici-http-handler
 
+## 0.3.2
+
+### Patch Changes
+
+- Support streaming body in UndiciHttpHandler ([e93e7d7bbe7f70a1155bdceff87164d902c4ebde](https://github.com/trivikr/trivikr-test-undici-http-handler/commit/e93e7d7bbe7f70a1155bdceff87164d902c4ebde))
+
 ## 0.3.1
 
 ### Patch Changes
