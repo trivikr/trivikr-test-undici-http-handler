@@ -206,6 +206,6 @@ export class UndiciHttpHandler
   }
 
   public httpHandlerConfigs(): UndiciHttpHandlerOptions {
-    return this.#config ?? {};
+    return { ...this.#config };
   }
 }
