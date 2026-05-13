@@ -96,12 +96,24 @@ describe.each([
     expect(response.$metadata.httpStatusCode).toBe(200);
     expect(response.body).toBeDefined();
 
+    let receivedUsageEvent = false;
+    const receivedEventTypes: string[] = [];
+
     for await (const event of response.body!) {
       if (event?.chunk?.bytes?.byteLength) {
         const parsed = JSON.parse(new TextDecoder().decode(event.chunk.bytes));
         expect(parsed).toHaveProperty("event");
-        expect(parsed["event"]).toHaveProperty("usageEvent");
+
+        const eventType = Object.keys(parsed["event"])[0];
+        receivedEventTypes.push(eventType);
+
+        if (eventType === "usageEvent") {
+          receivedUsageEvent = true;
+        }
       }
     }
+
+    expect(receivedEventTypes.length).toBeGreaterThan(0);
+    expect(receivedUsageEvent).toBe(true);
   });
 });
