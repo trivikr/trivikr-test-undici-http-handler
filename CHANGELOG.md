@@ -1,5 +1,11 @@
 # @trivikr-test/undici-http-handler
 
+## 0.4.0
+
+### Minor Changes
+
+- Replace TypeScript's compile-time `private` keyword with native ECMAScript private class fields (#) for true runtime encapsulation. ([f9355e2e941d6366de045e13758f25525483b6ef](https://github.com/trivikr/trivikr-test-undici-http-handler/commit/f9355e2e941d6366de045e13758f25525483b6ef))
+
 ## 0.3.2
 
 ### Patch Changes
