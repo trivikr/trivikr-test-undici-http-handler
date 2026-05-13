@@ -1,0 +1,103 @@
+import { BedrockRuntime } from "@aws-sdk/client-bedrock-runtime";
+import { describe, expect, it } from "vitest";
+
+import { UndiciHttpHandler } from "./undici-http-handler";
+
+describe.each([
+  { name: "default", requestHandler: undefined },
+  { name: "UndiciHttpHandler", requestHandler: new UndiciHttpHandler() },
+])("BedrockRuntime e2e with requestHandler: $name", ({ requestHandler }) => {
+  const client = new BedrockRuntime({
+    region: "us-east-1",
+    requestHandler,
+  });
+
+  it("invokeModelWithBidirectionalStream", async () => {
+    const p = "p";
+    const s = (data: unknown) => Buffer.from(JSON.stringify(data));
+    const chunk = (event: unknown) => ({
+      chunk: { bytes: s({ event }) },
+    });
+
+    const response = await client.invokeModelWithBidirectionalStream({
+      modelId: "amazon.nova-sonic-v1:0",
+      body: {
+        async *[Symbol.asyncIterator]() {
+          yield chunk({ sessionStart: {} });
+          yield chunk({
+            promptStart: {
+              promptName: p,
+              audioOutputConfiguration: {
+                mediaType: "audio/lpcm",
+                sampleRateHertz: 8000,
+                sampleSizeBits: 16,
+                channelCount: 1,
+                voiceId: "matthew",
+                encoding: "base64",
+                audioType: "SPEECH",
+              },
+            },
+          });
+          yield chunk({
+            contentStart: {
+              promptName: p,
+              contentName: "c1",
+              type: "TEXT",
+              role: "SYSTEM",
+              textInputConfiguration: { mediaType: "text/plain" },
+            },
+          });
+          yield chunk({
+            textInput: {
+              promptName: p,
+              contentName: "c1",
+              content: "Hi",
+            },
+          });
+          yield chunk({
+            contentEnd: { promptName: p, contentName: "c1" },
+          });
+          yield chunk({
+            contentStart: {
+              promptName: p,
+              contentName: "c2",
+              type: "AUDIO",
+              role: "USER",
+              audioInputConfiguration: {
+                mediaType: "audio/lpcm",
+                sampleRateHertz: 16000,
+                sampleSizeBits: 16,
+                channelCount: 1,
+                audioType: "SPEECH",
+                encoding: "base64",
+              },
+            },
+          });
+          yield chunk({
+            audioInput: {
+              promptName: p,
+              contentName: "c2",
+              content: Buffer.from(new Uint8Array(3200)).toString("base64"),
+            },
+          });
+          yield chunk({
+            contentEnd: { promptName: p, contentName: "c2" },
+          });
+          yield chunk({ promptEnd: { promptName: p } });
+          yield chunk({ sessionEnd: {} });
+        },
+      },
+    });
+
+    expect(response.$metadata.httpStatusCode).toBe(200);
+    expect(response.body).toBeDefined();
+
+    for await (const event of response.body!) {
+      if (event?.chunk?.bytes?.byteLength) {
+        const parsed = JSON.parse(new TextDecoder().decode(event.chunk.bytes));
+        expect(parsed).toHaveProperty("event");
+        expect(parsed["event"]).toHaveProperty("usageEvent");
+      }
+    }
+  });
+});

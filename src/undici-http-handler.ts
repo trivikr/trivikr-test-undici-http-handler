@@ -45,7 +45,7 @@ export class UndiciHttpHandler
       return this.#config.dispatcher;
     }
 
-    this.#config.dispatcher = new Agent();
+    this.#config.dispatcher = new Agent({ allowH2: true });
 
     return this.#config.dispatcher;
   }
