@@ -17,10 +17,10 @@ describe.each([
   });
 
   it("invokeModelWithBidirectionalStream", async () => {
-    const p = "p";
-    const s = (data: unknown) => Buffer.from(JSON.stringify(data));
+    const promptName = "p";
+    const jsonBytes = (data: unknown) => Buffer.from(JSON.stringify(data));
     const chunk = (event: unknown) => ({
-      chunk: { bytes: s({ event }) },
+      chunk: { bytes: jsonBytes({ event }) },
     });
 
     const response = await client.invokeModelWithBidirectionalStream({
@@ -30,7 +30,7 @@ describe.each([
           yield chunk({ sessionStart: {} });
           yield chunk({
             promptStart: {
-              promptName: p,
+              promptName,
               audioOutputConfiguration: {
                 mediaType: "audio/lpcm",
                 sampleRateHertz: 8000,
@@ -44,7 +44,7 @@ describe.each([
           });
           yield chunk({
             contentStart: {
-              promptName: p,
+              promptName,
               contentName: "c1",
               type: "TEXT",
               role: "SYSTEM",
@@ -53,17 +53,17 @@ describe.each([
           });
           yield chunk({
             textInput: {
-              promptName: p,
+              promptName,
               contentName: "c1",
               content: "Hi",
             },
           });
           yield chunk({
-            contentEnd: { promptName: p, contentName: "c1" },
+            contentEnd: { promptName, contentName: "c1" },
           });
           yield chunk({
             contentStart: {
-              promptName: p,
+              promptName,
               contentName: "c2",
               type: "AUDIO",
               role: "USER",
@@ -79,15 +79,15 @@ describe.each([
           });
           yield chunk({
             audioInput: {
-              promptName: p,
+              promptName,
               contentName: "c2",
               content: Buffer.from(new Uint8Array(3200)).toString("base64"),
             },
           });
           yield chunk({
-            contentEnd: { promptName: p, contentName: "c2" },
+            contentEnd: { promptName, contentName: "c2" },
           });
-          yield chunk({ promptEnd: { promptName: p } });
+          yield chunk({ promptEnd: { promptName } });
           yield chunk({ sessionEnd: {} });
         },
       },
