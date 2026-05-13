@@ -31,8 +31,6 @@ export class UndiciHttpHandler
   #config: UndiciHttpHandlerOptions;
   #externalDispatcher = false;
 
-  public readonly metadata = { handlerProtocol: "http/1.1" };
-
   constructor(options?: UndiciHttpHandlerOptions) {
     this.#config = { ...options };
     if (this.#config.dispatcher) {
