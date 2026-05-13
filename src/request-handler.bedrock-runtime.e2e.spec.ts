@@ -1,5 +1,5 @@
 import { BedrockRuntime } from "@aws-sdk/client-bedrock-runtime";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 
 import { UndiciHttpHandler } from "./undici-http-handler";
 
@@ -10,6 +10,10 @@ describe.each([
   const client = new BedrockRuntime({
     region: "us-east-1",
     requestHandler,
+  });
+
+  afterAll(() => {
+    client.destroy();
   });
 
   it("invokeModelWithBidirectionalStream", async () => {
