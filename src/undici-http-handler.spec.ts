@@ -108,16 +108,6 @@ describe("UndiciHttpHandler", () => {
     handler?.destroy();
   });
 
-  describe("constructor and create", () => {
-    it("creates a new instance with no options", () => {
-      handler = new UndiciHttpHandler();
-    });
-
-    it("creates a new instance with options", () => {
-      handler = new UndiciHttpHandler({ logger: createMockLogger() });
-    });
-  });
-
   describe("handle", () => {
     it("makes a basic GET request", async () => {
       handler = new UndiciHttpHandler();
