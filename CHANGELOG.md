@@ -1,5 +1,11 @@
 # @trivikr-test/undici-http-handler
 
+## 0.5.0
+
+### Minor Changes
+
+- Support bidirectional streaming by allowing HTTP/2 connections ([b38906086067981ef585f226cf58deb855f651c7](https://github.com/trivikr/trivikr-test-undici-http-handler/commit/b38906086067981ef585f226cf58deb855f651c7))
+
 ## 0.4.0
 
 ### Minor Changes
