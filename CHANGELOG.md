@@ -1,5 +1,11 @@
 # @trivikr-test/undici-http-handler
 
+## 0.6.0
+
+### Minor Changes
+
+- Deprecated in favor of `@smithy/undici-http-handler`. The `UndiciHttpHandler` class and `UndiciHttpHandlerOptions` interface are marked with `@deprecated` JSDoc tags, and a Node.js `DeprecationWarning` is emitted the first time `UndiciHttpHandler` is instantiated. ([6dec2b3b99a79fa5baa0cbecde73b40f8be80657](https://github.com/trivikr/trivikr-test-undici-http-handler/commit/6dec2b3b99a79fa5baa0cbecde73b40f8be80657))
+
 ## 0.5.0
 
 ### Minor Changes

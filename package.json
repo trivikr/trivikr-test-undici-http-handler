@@ -1,6 +1,6 @@
 {
   "name": "@trivikr-test/undici-http-handler",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Smithy-compatible HTTP handler backed by Node.js undici",
   "main": "./dist/cjs/index.js",
   "module": "./dist/es/index.js",
