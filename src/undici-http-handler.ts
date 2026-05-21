@@ -6,8 +6,12 @@ import { buildQueryString } from "@smithy/querystring-builder";
 import type { HttpHandlerOptions, Logger } from "@smithy/types";
 import { Agent, Dispatcher } from "undici";
 
+let deprecationWarningEmitted = false;
+
 /**
  * Options for the UndiciHttpHandler.
+ *
+ * @deprecated Use `UndiciHttpHandlerOptions` from `@smithy/undici-http-handler` instead.
  */
 export interface UndiciHttpHandlerOptions {
   /**
@@ -24,6 +28,8 @@ export interface UndiciHttpHandlerOptions {
 /**
  * An HTTP handler that uses undici instead of Node.js native http/https modules.
  * Smithy-compatible request handler backed by undici.
+ *
+ * @deprecated Use `UndiciHttpHandler` from `@smithy/undici-http-handler` instead.
  */
 export class UndiciHttpHandler
   implements HttpHandler<UndiciHttpHandlerOptions>
@@ -32,6 +38,16 @@ export class UndiciHttpHandler
   #externalDispatcher = false;
 
   constructor(options?: UndiciHttpHandlerOptions) {
+    if (!deprecationWarningEmitted) {
+      deprecationWarningEmitted = true;
+      process.emitWarning(
+        "The package '@trivikr-test/undici-http-handler' is deprecated. " +
+          "Please migrate to '@smithy/undici-http-handler'.",
+        "DeprecationWarning",
+        "DEP_TRIVIKR_TEST_UNDICI_HTTP_HANDLER",
+      );
+    }
+
     this.#config = { ...options };
     if (this.#config.dispatcher) {
       this.#externalDispatcher = true;
